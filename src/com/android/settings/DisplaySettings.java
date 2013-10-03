@@ -171,27 +171,25 @@ public class DisplaySettings extends SettingsPreferenceFragment implements
 
         mLcdDensityPreference = (ListPreference) findPreference(KEY_LCD_DENSITY);
         if (mLcdDensityPreference != null) {
-            final String defaultText = getResources().getString(R.string.lcd_density_default);
             int defaultDensity = DisplayMetrics.DENSITY_DEVICE;
             int currentDensity = DisplayMetrics.DENSITY_CURRENT;
             if (currentDensity < 10 || currentDensity >= 1000) {
                 // Unsupported value, force default
                 currentDensity = defaultDensity;
             }
-            int factor = 40;
-            if (defaultDensity > 400) {
-				factor = 80;
-			}
-			int minimumDensity = (defaultDensity - (factor * 2));
+
+            int factor = defaultDensity >= 480 ? 40 : 20;
+            int minimumDensity = defaultDensity - 4 * factor;
             int currentIndex = -1;
-            String[] densityEntries = new String[5];
-            String[] densityValues = new String[5];
-            for (int idx = 0; idx < 5; ++idx) {
-				int val = (minimumDensity + (factor * idx));
-                densityEntries[idx] = Integer.toString(val);
-                if (val == defaultDensity) {
-                    densityEntries[idx] += " (" + defaultText + ")";
-                }
+            String[] densityEntries = new String[7];
+            String[] densityValues = new String[7];
+            for (int idx = 0; idx < 7; ++idx) {
+                int val = minimumDensity + factor * idx;
+                int valueFormatResId = val == defaultDensity
+                        ? R.string.lcd_density_default_value_format
+                        : R.string.lcd_density_value_format;
+
+                densityEntries[idx] = getString(valueFormatResId, val);
                 densityValues[idx] = Integer.toString(val);
                 if (currentDensity == val) {
                     currentIndex = idx;
@@ -364,14 +362,9 @@ public class DisplaySettings extends SettingsPreferenceFragment implements
     }
 
     private void updateLcdDensityPreferenceDescription(int currentDensity) {
-        final String defaultText = getResources().getString(R.string.lcd_density_default);
-        int defaultDensity = DisplayMetrics.DENSITY_DEVICE;
-        ListPreference preference = mLcdDensityPreference;
-        String summary = getResources().getString(R.string.lcd_density_summary, currentDensity);
-        if (currentDensity == defaultDensity) {
-            summary += " (" + defaultText + ")";
-        }
-        preference.setSummary(summary);
+        final int summaryResId = currentDensity == DisplayMetrics.DENSITY_DEVICE
+                ? R.string.lcd_density_default_value_format : R.string.lcd_density_value_format;
+        mLcdDensityPreference.setSummary(getString(summaryResId, currentDensity));
     }
 
     private void disableUnusableTimeouts(ListPreference screenTimeoutPreference) {

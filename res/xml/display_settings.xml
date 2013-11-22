@@ -33,6 +33,12 @@
                 android:summary="@string/auto_brightness_summary"
                 android:persistent="false" />
 
+        <PreferenceScreen
+                android:key="navigation_bar"
+                android:fragment="com.android.settings.cyanogenmod.NavBar"
+                android:summary="@string/navigation_bar_settings_summary"
+                android:title="@string/navigation_bar_buttons" />
+
         <!-- Hide night mode for now
         <ListPreference
             android:key="night_mode"

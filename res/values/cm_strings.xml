@@ -282,7 +282,7 @@
     <string name="no_filters_title">No filters set</string>
 
     <!-- About phone screen, CyanogenMod version -->
-    <string name="mod_version">Spring version</string>
+    <string name="mod_version">CyanogenMod version</string>
     <string name="mod_version_default">Unknown</string>
 
     <!-- About phone screen, Device model -->

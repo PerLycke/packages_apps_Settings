@@ -19,6 +19,12 @@ package com.android.settings;
 
 import android.os.UserHandle;
 
+import android.view.Display;
+import android.view.IWindowManager;
+import android.view.WindowManager;
+import android.view.WindowManagerGlobal;
+import android.view.WindowManagerImpl;
+import android.widget.Toast;
 import com.android.internal.view.RotationPolicy;
 import com.android.settings.search.BaseSearchIndexProvider;
 import com.android.settings.search.Indexable;
@@ -71,6 +77,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.android.settings.cyanogenmod.DisplayRotation;
+import com.android.settings.Utils;
 
 public class DisplaySettings extends SettingsPreferenceFragment implements
         Preference.OnPreferenceChangeListener, OnPreferenceClickListener, Indexable {
@@ -171,8 +178,8 @@ public class DisplaySettings extends SettingsPreferenceFragment implements
 
         mLcdDensityPreference = (ListPreference) findPreference(KEY_LCD_DENSITY);
         if (mLcdDensityPreference != null) {
-            int defaultDensity = DisplayMetrics.DENSITY_DEVICE;
-            int currentDensity = DisplayMetrics.DENSITY_CURRENT;
+            int defaultDensity = getDefaultDensity();
+            int currentDensity = getCurrentDensity();
             if (currentDensity < 10 || currentDensity >= 1000) {
                 // Unsupported value, force default
                 currentDensity = defaultDensity;
@@ -229,7 +236,7 @@ public class DisplaySettings extends SettingsPreferenceFragment implements
         }
 
         mDozePreference = (SwitchPreference) findPreference(KEY_DOZE);
-        if (mDozePreference != null && isDozeAvailable(activity)) {
+        if (mDozePreference != null && Utils.isDozeAvailable(activity)) {
             mDozePreference.setOnPreferenceChangeListener(this);
         } else {
             if (displayPrefs != null && mDozePreference != null) {
@@ -258,6 +265,28 @@ public class DisplaySettings extends SettingsPreferenceFragment implements
         initPulse((PreferenceCategory) findPreference(KEY_CATEGORY_LIGHTS));
     }
 
+    private int getDefaultDensity() {
+        IWindowManager wm = IWindowManager.Stub.asInterface(ServiceManager.checkService(
+                Context.WINDOW_SERVICE));
+        try {
+            return wm.getInitialDisplayDensity(Display.DEFAULT_DISPLAY);
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+        return DisplayMetrics.DENSITY_DEVICE;
+    }
+
+    private int getCurrentDensity() {
+        IWindowManager wm = IWindowManager.Stub.asInterface(ServiceManager.checkService(
+                Context.WINDOW_SERVICE));
+        try {
+            return wm.getBaseDisplayDensity(Display.DEFAULT_DISPLAY);
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+        return DisplayMetrics.DENSITY_DEVICE;
+    }
+
     private static boolean allowAllRotations(Context context) {
         return Resources.getSystem().getBoolean(
                 com.android.internal.R.bool.config_allowAllRotations);
@@ -266,15 +295,6 @@ public class DisplaySettings extends SettingsPreferenceFragment implements
     private static boolean isLiftToWakeAvailable(Context context) {
         SensorManager sensors = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
         return sensors != null && sensors.getDefaultSensor(Sensor.TYPE_WAKE_GESTURE) != null;
-    }
-
-    private static boolean isDozeAvailable(Context context) {
-        String name = Build.IS_DEBUGGABLE ? SystemProperties.get("debug.doze.component") : null;
-        if (TextUtils.isEmpty(name)) {
-            name = context.getResources().getString(
-                    com.android.internal.R.string.config_dozeComponent);
-        }
-        return !TextUtils.isEmpty(name);
     }
 
     private static boolean isAutomaticBrightnessAvailable(Resources res) {
@@ -362,7 +382,7 @@ public class DisplaySettings extends SettingsPreferenceFragment implements
     }
 
     private void updateLcdDensityPreferenceDescription(int currentDensity) {
-        final int summaryResId = currentDensity == DisplayMetrics.DENSITY_DEVICE
+        final int summaryResId = currentDensity == getDefaultDensity()
                 ? R.string.lcd_density_default_value_format : R.string.lcd_density_value_format;
         mLcdDensityPreference.setSummary(getString(summaryResId, currentDensity));
     }
@@ -497,15 +517,11 @@ public class DisplaySettings extends SettingsPreferenceFragment implements
         }
     }
 
-    private void writeLcdDensityPreference(final Context context, int value) {
-        try {
-            SystemProperties.set("persist.sys.lcd_density", Integer.toString(value));
-        } catch (RuntimeException e) {
-            Log.e(TAG, "Unable to save LCD density");
-            return;
-        }
+    private void writeLcdDensityPreference(final Context context, final int density) {
         final IActivityManager am = ActivityManagerNative.asInterface(
                 ServiceManager.checkService("activity"));
+        final IWindowManager wm = IWindowManager.Stub.asInterface(ServiceManager.checkService(
+                Context.WINDOW_SERVICE));
         AsyncTask<Void, Void, Void> task = new AsyncTask<Void, Void, Void>() {
             @Override
             protected void onPreExecute() {
@@ -523,6 +539,13 @@ public class DisplaySettings extends SettingsPreferenceFragment implements
                 } catch (InterruptedException e) {
                     // Ignore
                 }
+
+                try {
+                    wm.setForcedDisplayDensity(Display.DEFAULT_DISPLAY, density);
+                } catch (RemoteException e) {
+                    Log.e(TAG, "Failed to set density to " + density, e);
+                }
+
                 // Restart the UI
                 try {
                     am.restart();
@@ -715,7 +738,7 @@ public class DisplaySettings extends SettingsPreferenceFragment implements
                     if (!isLiftToWakeAvailable(context)) {
                         result.add(KEY_LIFT_TO_WAKE);
                     }
-                    if (!isDozeAvailable(context)) {
+                    if (!Utils.isDozeAvailable(context)) {
                         result.add(KEY_DOZE);
                     }
                     return result;

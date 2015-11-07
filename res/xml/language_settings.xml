@@ -40,6 +40,13 @@
             android:title="@string/user_dict_settings_title"
             />
 
+    <com.android.settings.cyanogenmod.SystemSettingSwitchPreference
+            android:key="navigation_bar_menu_arrow_keys"
+            android:title="@string/navigation_bar_arrow_keys_title"
+            android:summary="@string/navigation_bar_arrow_keys_summary"
+            android:defaultValue="false"
+            />
+
     <PreferenceCategory
             android:key="keyboard_settings_category"
             android:title="@string/keyboard_settings_category">

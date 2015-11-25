@@ -85,4 +85,10 @@
     <string name="volbtn_music_controls_title">Playback control</string>
     <string name="volbtn_music_controls_summary">When the screen is off, long pressing the volume keys will seek music tracks</string>
 
+    <string name="spring_version">Spring version</string>
+    <string name="spring_version_default">Unknown</string>
+    <string name="build_date">Build date</string>
+    <string name="build_date_default">2014-01-01-0000</string>
+    <string name="model_name">Model name</string>
+
 </resources>
